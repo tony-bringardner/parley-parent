@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Parley parent POM.
+
+  Holds everything every Parley module shares: coordinates, Central-required
+  metadata (license, developers, SCM), Java level, and build/publishing plugins.
+  Each module only declares its artifactId, name, description, dependencies and
+  the property parley.moduleName.
+
+  Intentionally has NO <dependencyManagement>: parley-bom inherits from this POM,
+  and anything managed here would leak into every user who imports the BOM.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Must fall under the namespace you verify on central.sonatype.com.
+       If you can't verify bringardner.us, use io.github.tony-bringardner.parley -->
+  <groupId>us.bringardner.parley</groupId>
+  <artifactId>parley-parent</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>${project.groupId}:${project.artifactId}</name>
+  <description>Parley: Java libraries for implementing internet protocols. Shared parent POM.</description>
+  <!-- ${project.artifactId} resolves in each child, so every module points at its own repo -->
+  <url>https://github.com/tony-bringardner/${project.artifactId}</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <licenses>
+    <!-- Change if you choose a different license; keep a LICENSE file in every repo to match -->
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>tony-bringardner</id>
+      <name>Tony Bringardner</name>
+      <url>https://github.com/tony-bringardner</url>
+    </developer>
+  </developers>
+
+  <scm child.scm.connection.inherit.append.path="false"
+       child.scm.developerConnection.inherit.append.path="false"
+       child.scm.url.inherit.append.path="false">
+    <connection>scm:git:https://github.com/tony-bringardner/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/tony-bringardner/${project.artifactId}.git</developerConnection>
+    <url>https://github.com/tony-bringardner/${project.artifactId}/tree/main</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/tony-bringardner/${project.artifactId}/issues</url>
+  </issueManagement>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Base level stays Java 11; Java 21+ code goes in a multi-release jar -->
+    <maven.compiler.release>11</maven.compiler.release>
+
+    <!-- Every module MUST override this, e.g. us.bringardner.parley.dns.
+         Written to the jar manifest as Automatic-Module-Name. Enforced below. -->
+    <parley.moduleName></parley.moduleName>
+    <parley.skipModuleNameCheck>false</parley.skipModuleNameCheck>
+
+    <!-- Plugin versions. Check for newer ones with: mvn versions:display-plugin-updates -->
+    <version.central-publishing>0.11.0</version.central-publishing>
+    <version.compiler>3.13.0</version.compiler>
+    <version.enforcer>3.5.0</version.enforcer>
+    <version.gpg>3.2.7</version.gpg>
+    <version.jar>3.4.2</version.jar>
+    <version.javadoc>3.11.2</version.javadoc>
+    <version.source>3.3.1</version.source>
+    <version.surefire>3.5.2</version.surefire>
+  </properties>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${version.compiler}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${version.surefire}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${version.jar}</version>
+          <configuration>
+            <archive>
+              <manifestEntries>
+                <Automatic-Module-Name>${parley.moduleName}</Automatic-Module-Name>
+              </manifestEntries>
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              </manifest>
+            </archive>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${version.source}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${version.javadoc}</version>
+          <configuration>
+            <!-- Lenient so existing code releases cleanly; tighten to all,-missing later -->
+            <doclint>none</doclint>
+            <release>${maven.compiler.release}</release>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>${version.gpg}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.sonatype.central</groupId>
+          <artifactId>central-publishing-maven-plugin</artifactId>
+          <version>${version.central-publishing}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${version.enforcer}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <!-- Fail fast on things Central or users will trip over -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-basics</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.6.3,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[11,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+          <execution>
+            <id>enforce-module-name</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <!-- Only jar modules need a module name; pom-packaged ones (parent, BOM) skip -->
+              <skip>${parley.skipModuleNameCheck}</skip>
+              <rules>
+                <requireProperty>
+                  <property>parley.moduleName</property>
+                  <message>Set &lt;parley.moduleName&gt; in this module's properties, e.g. us.bringardner.parley.dns</message>
+                  <regex>us\.bringardner\.parley(\.[a-z][a-z0-9]*)+</regex>
+                  <regexMessage>parley.moduleName must look like us.bringardner.parley.something</regexMessage>
+                </requireProperty>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- pom-packaged projects (this parent, the BOM) don't produce a jar, so skip the module-name check -->
+    <profile>
+      <id>pom-packaging</id>
+      <activation>
+        <file>
+          <missing>src/main/java</missing>
+        </file>
+      </activation>
+      <properties>
+        <parley.skipModuleNameCheck>true</parley.skipModuleNameCheck>
+      </properties>
+    </profile>
+
+    <!--
+      Release profile: everything Maven Central needs.
+        mvn -Prelease clean deploy
+      Kept out of normal builds so day-to-day work needs no GPG key or Central token.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <!-- Passphrase comes from the MAVEN_GPG_PASSPHRASE environment variable -->
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <extensions>true</extensions>
+            <configuration>
+              <!-- Matches the <server><id> in ~/.m2/settings.xml -->
+              <publishingServerId>central</publishingServerId>
+              <!-- false: you review and click Publish on central.sonatype.com.
+                   Switch to true (with waitUntil=published) once releases are routine. -->
+              <autoPublish>false</autoPublish>
+              <deploymentName>${project.artifactId} ${project.version}</deploymentName>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
